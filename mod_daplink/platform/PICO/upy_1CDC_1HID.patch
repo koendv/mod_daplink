@@ -1,0 +1,169 @@
+diff --git a/ports/rp2/modules/_boot.py b/ports/rp2/modules/_boot.py
+index 099e5aba0..5f875309b 100644
+--- a/ports/rp2/modules/_boot.py
++++ b/ports/rp2/modules/_boot.py
+@@ -1,6 +1,6 @@
+ import os
+ import machine, rp2
+-
++import daplink
+ 
+ # Try to mount the filesystem, and format the flash if it doesn't exist.
+ # Note: the flash requires the programming size to be aligned to 256 bytes.
+diff --git a/ports/rp2/mpconfigport.h b/ports/rp2/mpconfigport.h
+index e6a85bb68..9628eaaf4 100644
+--- a/ports/rp2/mpconfigport.h
++++ b/ports/rp2/mpconfigport.h
+@@ -208,7 +208,7 @@ extern const struct _mod_network_nic_type_t mod_network_nic_type_nina;
+ #define MICROPY_END_ATOMIC_SECTION(state)  restore_interrupts(state)
+ 
+ #if MICROPY_HW_ENABLE_USBDEV
+-#define MICROPY_HW_USBDEV_TASK_HOOK extern void tud_task(void); tud_task();
++#define MICROPY_HW_USBDEV_TASK_HOOK extern void tud_task(void); tud_task(); extern void hid_task(void); hid_task();
+ #define MICROPY_VM_HOOK_COUNT (10)
+ #define MICROPY_VM_HOOK_INIT static uint vm_hook_divisor = MICROPY_VM_HOOK_COUNT;
+ #define MICROPY_VM_HOOK_POLL if (--vm_hook_divisor == 0) { \
+diff --git a/ports/rp2/tusb_config.h b/ports/rp2/tusb_config.h
+index 8c2a9f756..434e403dc 100644
+--- a/ports/rp2/tusb_config.h
++++ b/ports/rp2/tusb_config.h
+@@ -28,8 +28,10 @@
+ #define CFG_TUSB_RHPORT0_MODE   (OPT_MODE_DEVICE)
+ 
+ #define CFG_TUD_CDC             (1)
++#define CFG_TUD_HID             (1)
+ #define CFG_TUD_CDC_EP_BUFSIZE  (256)
+ #define CFG_TUD_CDC_RX_BUFSIZE  (256)
+ #define CFG_TUD_CDC_TX_BUFSIZE  (256)
++#define CFG_TUD_HID_EP_BUFSIZE  (64)
+ 
+ #endif // MICROPY_INCLUDED_RP2_TUSB_CONFIG_H
+diff --git a/ports/rp2/tusb_port.c b/ports/rp2/tusb_port.c
+index 8896be907..e7b0c6a2f 100644
+--- a/ports/rp2/tusb_port.c
++++ b/ports/rp2/tusb_port.c
+@@ -25,6 +25,8 @@
+  */
+ 
+ #include "tusb.h"
++#include "DAP.h"
++#include "DAP_config.h"
+ #include "pico/unique_id.h"
+ 
+ #ifndef MICROPY_HW_USB_VID
+@@ -34,11 +36,12 @@
+ #define MICROPY_HW_USB_PID (0x0005) // RP2 MicroPython
+ #endif
+ 
+-#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN)
++#define USBD_DESC_LEN (TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_INOUT_DESC_LEN)
+ #define USBD_MAX_POWER_MA (250)
+ 
+ #define USBD_ITF_CDC (0) // needs 2 interfaces
+-#define USBD_ITF_MAX (2)
++#define USBD_ITF_HID (2)
++#define USBD_ITF_MAX (3)
+ 
+ #define USBD_CDC_EP_CMD (0x81)
+ #define USBD_CDC_EP_OUT (0x02)
+@@ -46,11 +49,23 @@
+ #define USBD_CDC_CMD_MAX_SIZE (8)
+ #define USBD_CDC_IN_OUT_MAX_SIZE (64)
+ 
++#define USBD_HID_EP_OUT (0x03)
++#define USBD_HID_EP_IN  (0x83)
++#define USBD_HID_POLL_INTERVAL_MS (8)
++
+ #define USBD_STR_0 (0x00)
+ #define USBD_STR_MANUF (0x01)
+ #define USBD_STR_PRODUCT (0x02)
+ #define USBD_STR_SERIAL (0x03)
+ #define USBD_STR_CDC (0x04)
++#define USBD_STR_HID (0x05)
++
++// hid response queue
++
++#define MAX_HID_RESPONSE (DAP_PACKET_COUNT + 1)
++uint8_t hid_response_data[MAX_HID_RESPONSE][CFG_TUD_HID_EP_BUFSIZE];
++uint32_t hid_response_head = 0;
++uint32_t hid_response_tail = 0;
+ 
+ // Note: descriptors returned from callbacks must exist long enough for transfer to complete
+ 
+@@ -71,21 +86,75 @@ static const tusb_desc_device_t usbd_desc_device = {
+     .bNumConfigurations = 1,
+ };
+ 
++uint8_t const desc_hid_report[] =
++{
++    TUD_HID_REPORT_DESC_GENERIC_INOUT(CFG_TUD_HID_EP_BUFSIZE)
++};
++
+ static const uint8_t usbd_desc_cfg[USBD_DESC_LEN] = {
++    // Config number, interface count, string index, total length, attribute, power in mA
+     TUD_CONFIG_DESCRIPTOR(1, USBD_ITF_MAX, USBD_STR_0, USBD_DESC_LEN,
+         0, USBD_MAX_POWER_MA),
+ 
++    // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
+     TUD_CDC_DESCRIPTOR(USBD_ITF_CDC, USBD_STR_CDC, USBD_CDC_EP_CMD,
+         USBD_CDC_CMD_MAX_SIZE, USBD_CDC_EP_OUT, USBD_CDC_EP_IN, USBD_CDC_IN_OUT_MAX_SIZE),
++
++    // Interface number, string index, protocol, report descriptor len, EP In & Out address, size & polling interval
++    TUD_HID_INOUT_DESCRIPTOR(USBD_ITF_HID, USBD_STR_HID, HID_ITF_PROTOCOL_NONE,
++        sizeof(desc_hid_report), USBD_HID_EP_OUT, USBD_HID_EP_IN, CFG_TUD_HID_EP_BUFSIZE, USBD_HID_POLL_INTERVAL_MS)
++
+ };
+ 
+ static const char *const usbd_desc_str[] = {
+     [USBD_STR_MANUF] = "MicroPython",
+-    [USBD_STR_PRODUCT] = "Board in FS mode",
++    [USBD_STR_PRODUCT] = "CMSIS-DAP",
+     [USBD_STR_SERIAL] = NULL, // generated dynamically
+     [USBD_STR_CDC] = "Board CDC",
++    [USBD_STR_HID] = "CMSIS-DAP HID",
+ };
+ 
++uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf) {
++    (void)itf;
++    return desc_hid_report;
++}
++
++/* not used */
++
++uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen) {
++    (void)itf;
++    (void)report_id;
++    (void)report_type;
++    (void)buffer;
++    (void)reqlen;
++
++    return 0;
++}
++
++/* received data on OUT endpoint. execute hid request and send response when tud_hid_ready */
++
++void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buf, uint16_t buf_siz) {
++    (void)itf;
++    uint8_t hid_request[CFG_TUD_HID_EP_BUFSIZE] = {0};
++
++    if ((report_id == 0) && (report_type == 0)) {
++        int len = MIN(buf_siz, CFG_TUD_HID_EP_BUFSIZE);
++        memcpy(hid_request, buf, len);
++        if (DAP_ProcessCommand(hid_request, hid_response_data[hid_response_head]) & 0xffff) {
++            hid_response_head = (hid_response_head + 1) % MAX_HID_RESPONSE;
++        }
++    }
++}
++
++/* hid responses on queue. send when hid ready */
++
++void hid_task(void) {
++    if ((hid_response_head != hid_response_tail) && tud_hid_ready()) {
++        tud_hid_report(0, hid_response_data[hid_response_tail], CFG_TUD_HID_EP_BUFSIZE);
++        hid_response_tail = (hid_response_tail + 1) % MAX_HID_RESPONSE;
++    }
++}
++
+ const uint8_t *tud_descriptor_device_cb(void) {
+     return (const uint8_t *)&usbd_desc_device;
+ }
