@@ -1,8 +1,9 @@
 # module daplink
-This software implements CMSIS-DAP as a micropython module. CMSIS-DAP can be acessed in two ways
+CMSIS-DAP is a protocol to access the debug interface of ARM processors.
+This software implements CMSIS-DAP as a micropython module. The CMSIS-DAP interface can be acessed in two ways
 
-- from pyocd and openocd software running on the pc host
-- from a micropython script running on the CMSIS-DAP adapter
+- from pyocd and openocd software running on the pc host, accessing CMSIS-DAP as a usb hid device
+- from a micropython script running on the CMSIS-DAP adapter itself, accessing CMSIS-DAP as a micropython module.
 
 Compiled firmware for raspberry pico is available for download. The raspberry pico firmware has
 
