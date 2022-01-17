@@ -15,7 +15,7 @@ These are instructions for building micropython with the _daplink_ module.
 git clone  https://github.com/koendv/mod_daplink/
 git clone https://github.com/micropython/micropython
 cd micropython
-patch -p1 < ../moddap/moddap/platform/PICO/upy_2CDC_1HID.patch
+patch -p1 < ../moddap/moddap/platform/PICO/upy_1CDC_1HID.patch
 cd mpy-cross/
 make
 cd ../ports/rp2/
