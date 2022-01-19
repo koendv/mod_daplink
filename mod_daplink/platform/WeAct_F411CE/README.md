@@ -1,4 +1,4 @@
-#WeAct STM32F4x1 MiniF4
+# WeAct STM32F4x1 MiniF4
 - [product](https://aliexpress.com/item/1005001456186625.html)
 - [git](https://github.com/WeActTC/MiniSTM32F4x1)
 - available ram in micropython: 83 kbyte, available flash for filesystem: 48 kbyte.
