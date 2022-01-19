@@ -1,0 +1,30 @@
+diff --git a/ports/stm32/boards/PYBD_SF2/mpconfigboard.h b/ports/stm32/boards/PYBD_SF2/mpconfigboard.h
+index 9ac789a83..04be7847d 100644
+--- a/ports/stm32/boards/PYBD_SF2/mpconfigboard.h
++++ b/ports/stm32/boards/PYBD_SF2/mpconfigboard.h
+@@ -27,6 +27,9 @@
+ #define MICROPY_HW_BOARD_NAME       "PYBD-SF2W"
+ #define MICROPY_HW_MCU_NAME         "STM32F722IEK"
+ 
++#define MICROPY_HW_USB_PRODUCT_HS_STRING "micropython CMSIS-DAP"
++#define MICROPY_HW_USB_PRODUCT_FS_STRING "micropython CMSIS-DAP"
++
+ #define MICROPY_PY_PYB_LEGACY       (1)
+ #define MICROPY_HW_ENABLE_INTERNAL_FLASH_STORAGE (0)
+ #define MICROPY_HW_HAS_SWITCH       (1)
+diff --git a/ports/stm32/boards/PYBD_SF2/pins.csv b/ports/stm32/boards/PYBD_SF2/pins.csv
+index c11f3fe90..d6704b3e1 100644
+--- a/ports/stm32/boards/PYBD_SF2/pins.csv
++++ b/ports/stm32/boards/PYBD_SF2/pins.csv
+@@ -187,3 +187,11 @@ SD_SW,PA14
+ ,PH15
+ ,PI2
+ ,PI3
++DAP_nRESET,PA3
++DAP_SWCLK_TCK,PA5
++DAP_SWDIO_TMS,PA7
++DAP_TDI,PB0
++DAP_TDO,PB11
++DAP_nTRST,PB10
++DAP_LED0,PF3
++DAP_LED1,PF4
