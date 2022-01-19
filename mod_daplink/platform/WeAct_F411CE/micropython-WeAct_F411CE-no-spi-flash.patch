@@ -1,0 +1,29 @@
+diff --git a/mpconfigboard.h b/mpconfigboard.h
+index 6bdc41b..296aaf6 100644
+--- a/mpconfigboard.h
++++ b/mpconfigboard.h
+@@ -1,6 +1,9 @@
+ #define MICROPY_HW_BOARD_NAME       "WeAct Studio Core" 
+ #define MICROPY_HW_MCU_NAME         "STM32F411CE"
+ 
++#define MICROPY_HW_USB_PRODUCT_HS_STRING "micropython CMSIS-DAP"
++#define MICROPY_HW_USB_PRODUCT_FS_STRING "micropython CMSIS-DAP"
++
+ /* 启用 THREAD */ 
+ #define MICROPY_PY_THREAD           (1)
+ 
+diff --git a/pins.csv b/pins.csv
+index e434b80..2f87456 100644
+--- a/pins.csv
++++ b/pins.csv
+@@ -65,3 +65,10 @@ PC15,PC15
+ PH0,PH0
+ PH1,PH1
+ LED_BLUE,PC13
++DAP_nRESET,PB4
++DAP_SWCLK_TCK,PA14
++DAP_SWDIO_TMS,PA13
++DAP_TDI,PA1
++DAP_TDO,PB3
++DAP_nTRST,PB5
++DAP_LED0,PC13

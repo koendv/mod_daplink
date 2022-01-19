@@ -1,0 +1,39 @@
+diff --git a/mpconfigboard.h b/mpconfigboard.h
+index 6bdc41b..296aaf6 100644
+--- a/mpconfigboard.h
++++ b/mpconfigboard.h
+@@ -1,6 +1,9 @@
+ #define MICROPY_HW_BOARD_NAME       "WeAct Studio Core" 
+ #define MICROPY_HW_MCU_NAME         "STM32F411CE"
+ 
++#define MICROPY_HW_USB_PRODUCT_HS_STRING "micropython CMSIS-DAP"
++#define MICROPY_HW_USB_PRODUCT_FS_STRING "micropython CMSIS-DAP"
++
+ /* 启用 THREAD */ 
+ #define MICROPY_PY_THREAD           (1)
+ 
+@@ -99,7 +102,8 @@ void WeAct_Core_board_early_init(void);
+ // 4MB Flash 32Mbit
+ // 8MB Flash 64Mbit
+ // 16MB Flash 128Mbit
+-#define MICROPY_HW_SPIFLASH_SIZE_BITS (32 * 1024 * 1024)
++// 8MB Flash 64Mbit - 25Q64JVSIQ
++#define MICROPY_HW_SPIFLASH_SIZE_BITS (64 * 1024 * 1024)
+ 
+ #define MICROPY_HW_SPIFLASH_CS      (pin_A4)
+ #define MICROPY_HW_SPIFLASH_SCK     (pin_A5)
+diff --git a/pins.csv b/pins.csv
+index e434b80..2f87456 100644
+--- a/pins.csv
++++ b/pins.csv
+@@ -65,3 +65,10 @@ PC15,PC15
+ PH0,PH0
+ PH1,PH1
+ LED_BLUE,PC13
++DAP_nRESET,PB4
++DAP_SWCLK_TCK,PA14
++DAP_SWDIO_TMS,PA13
++DAP_TDI,PA1
++DAP_TDO,PB3
++DAP_nTRST,PB5
++DAP_LED0,PC13
