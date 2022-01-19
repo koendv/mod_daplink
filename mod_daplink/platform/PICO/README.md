@@ -1,6 +1,8 @@
-## Description
+# PICO rp2040
 
 This is the _daplink_ module for micropython on raspberry pico. 
+
+## Description
 Pinout is in the file _IO_config.h_
 
 - one CDC serial for micropython prompt
