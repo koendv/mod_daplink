@@ -1,9 +1,9 @@
 # WeAct STM32F4x1 MiniF4
 - [product](https://aliexpress.com/item/1005001456186625.html)
 - [git](https://github.com/WeActTC/MiniSTM32F4x1)
-- available ram in micropython: 83 kbyte, available flash for filesystem: 48 kbyte.
-- WeAct_F411CE with 8Mbyte spi flash preferred; else little room for scripts.
-- because of limited number of usb endpoints, only usb mode 'VCP+HID' can be used. 'VCP+MSC+HID' does not work.
+- available ram in micropython: 83 kbyte
+- available internal flash for filesystem: 48 kbyte. WeAct_F411CE with 8Mbyte spi flash preferred; else little room for scripts.
+- only usb mode 'VCP+HID' can be used. 'VCP+MSC+HID' does not work.
 - cmsis-dap adapter requires micropython scripts in modules/ directory.
 
 ## build
