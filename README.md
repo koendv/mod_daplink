@@ -28,7 +28,7 @@ make BOARD=PYBD_SF2 USER_C_MODULES=~/src/mod_daplink/
 
 ## micropython
 
-The module _daplink_ implements the function _process_request_. The function _process_request_ has two parameters, _request_ and _response_. _request_ and _response_ are strings, bytes, or bytearray. _response_ should be long enough to store the result, e.g. 64 bytes long. The output of _process_request_ is a tuple of two numbers. The first number is the number of bytes read from _request_; the second number is the number of bytes written to _response_.
+The module _daplink_ implements the function _process_request_. The function _process_request_ has two parameters, _request_ and _response_. _request_ and _response_ are string or bytes, each 64 bytes long. The output of _process_request_ is a tuple of two numbers. The first number is the number of bytes read from _request_; the second number is the number of bytes written to _response_. If the number of bytes written to _response_ is zero, no response needs to be sent.
 
 ```python
 >>> import daplink
