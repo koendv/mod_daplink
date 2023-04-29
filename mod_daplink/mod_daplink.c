@@ -39,7 +39,7 @@ const mp_obj_module_t daplink_module = {
     .globals = (mp_obj_dict_t *)&daplink_module_globals,
 };
 
-MP_REGISTER_MODULE(MP_QSTR_daplink, daplink_module, 1);
+MP_REGISTER_MODULE(MP_QSTR_daplink, daplink_module);
 
 /* dap hid descriptor for usb_mode(hid=daplink.hid_info) */
 
@@ -82,8 +82,6 @@ STATIC const mp_rom_obj_tuple_t mp_daplink_hidinfo_obj = {
 
 /* code */
 
-STATIC void mp_obj_get_data(mp_obj_t mp_obj, size_t *len, uint8_t **items);
-
 STATIC mp_obj_t mp_daplink_help() {
     mp_print_str(MP_PYTHON_PRINTER, daplink_help_text);
     return mp_const_none;
@@ -103,54 +101,27 @@ STATIC mp_obj_t mp_daplink_init() {
 
 /* call dap from micropython.
    arguments:
-     - request: string, bytes, or bytearray (64 bytes)
-     - response: string, bytes, or bytearray (64 bytes)
-   returns true if response needs to be sent; false if response does not need to
-   be sent.
+     - request: string or bytes, 64 bytes long
+     - response: string or bytes, 64 bytes long
+   daplink.process_request(app_request, app_response))[1] is zero if a response does not need to be sent.
 */
 
 STATIC mp_obj_t mp_daplink_process_request(mp_obj_t req, mp_obj_t resp) {
-    size_t app_request_len;
-    uint8_t *app_request_buffer = {0};
-    size_t app_response_len;
-    uint8_t *app_response_buffer = {0};
+    if (!mp_obj_is_str_or_bytes(req) || !mp_obj_is_str_or_bytes(resp)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("expected string or bytes"));
+    }
+    GET_STR_DATA_LEN(req, app_request_buffer, app_request_len);
+    GET_STR_DATA_LEN(resp, app_response_buffer, app_response_len);
+    if ((app_request_len != 64) || (app_response_len != 64)) {
+        mp_raise_ValueError(MP_ERROR_TEXT("expected 64 bytes"));
+    }
 
-    mp_obj_get_data(req, &app_request_len, &app_request_buffer);
-    mp_obj_get_data(resp, &app_response_len, &app_response_buffer);
-
-    uint32_t retval = DAP_ProcessCommand(app_request_buffer, app_response_buffer);
+    uint32_t retval = DAP_ProcessCommand(app_request_buffer, (byte *)app_response_buffer);
 
     mp_obj_tuple_t *tuple = MP_OBJ_TO_PTR(mp_obj_new_tuple(2, NULL));
     tuple->items[0] = MP_OBJ_NEW_SMALL_INT((retval >> 16) & 0xffff);  // number of bytes in request
     tuple->items[1] = MP_OBJ_NEW_SMALL_INT(retval & 0xffff);          // number of bytes in response
     return MP_OBJ_FROM_PTR(tuple);
-}
-
-/* access to bytes/bytearray contents and length */
-
-/*
-   input:
-   mp_obj: micropython string, bytes or bytearray
-   output:
-   len: mp_obj length
-   items: mp_obj data
- */
-
-STATIC void mp_obj_get_data(mp_obj_t mp_obj, size_t *len, uint8_t **items) {
-    if (mp_obj_is_type(MP_OBJ_FROM_PTR(mp_obj), &mp_type_bytearray)) {
-        mp_obj_array_t *barray = MP_OBJ_FROM_PTR(mp_obj);
-        *len = barray->len;
-        *items = barray->items;
-        return;
-    }
-    if (mp_obj_is_type(MP_OBJ_FROM_PTR(mp_obj), &mp_type_bytes) ||
-        mp_obj_is_type(MP_OBJ_FROM_PTR(mp_obj), &mp_type_str)) {
-        mp_obj_str_t *str = MP_OBJ_FROM_PTR(mp_obj);
-        *len = str->len;
-        *items = (void *)str->data;
-        return;
-    }
-    mp_raise_TypeError(MP_ERROR_TEXT("expected string, bytes or bytearray"));
 }
 
 /* not truncated */
